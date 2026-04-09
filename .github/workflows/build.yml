@@ -85,12 +85,12 @@ jobs:
         if: runner.os == 'Windows'
         shell: pwsh
         run: |
-          $ErrorActionPreference = "Stop"
-          vcpkg install "opencv4[wechat-qrcode]:x64-windows-static"
+          vcpkg install "opencv4[contrib,dnn]:x64-windows-static"
           $TOOLCHAIN_FILE = "$($env:VCPKG_INSTALLATION_ROOT)/scripts/buildsystems/vcpkg.cmake"
           Write-Host "Using toolchain file: $TOOLCHAIN_FILE"
           if (-not (Test-Path $TOOLCHAIN_FILE)) {
             Write-Error "FATAL: Toolchain file not found at $TOOLCHAIN_FILE"
+            exit 1
           }
           cmake -B build `
             -G "Visual Studio 17 2022" `
