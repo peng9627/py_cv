@@ -1,6 +1,6 @@
 #!/bin/bash
 # -----------------------------------------------------------------------------
-# macOS 依赖项递归打包脚本 (v5 - 终极健壮版)
+# macOS 依赖项递归打包脚本 (v6 - 增强版)
 # -----------------------------------------------------------------------------
 set -e
 
@@ -18,13 +18,16 @@ LIBS_TO_PROCESS=()
 INITIAL_DEPS=$(otool -L "$SCANNER_EXE" | grep -v -E '/usr/lib/|/System/Library/' | tail -n +2 | awk '{print $1}')
 LIBS_TO_PROCESS+=($INITIAL_DEPS)
 
+PROCESSED_LIBS=() # 用于防止重复处理
 while [ ${#LIBS_TO_PROCESS[@]} -gt 0 ]; do
   CURRENT_LIB=${LIBS_TO_PROCESS[0]}
   LIBS_TO_PROCESS=("${LIBS_TO_PROCESS[@]:1}")
 
-  if [[ " ${ALL_LIBS[@]} " =~ " ${CURRENT_LIB} " ]]; then
+  # 使用一个专门的数组来跟踪已处理的项，避免重复劳动
+  if [[ " ${PROCESSED_LIBS[@]} " =~ " ${CURRENT_LIB} " ]]; then
     continue
   fi
+  PROCESSED_LIBS+=("$CURRENT_LIB")
 
   echo "Found dependency: $CURRENT_LIB"
   ALL_LIBS+=("$CURRENT_LIB")
@@ -35,6 +38,28 @@ while [ ${#LIBS_TO_PROCESS[@]} -gt 0 ]; do
     LIBS_TO_PROCESS+=($NEW_DEPS)
   fi
 done
+
+# --- 【新】步骤 1.5: 针对 webp 的特殊处理 ---
+# webp 有复杂的内部依赖(@rpath)，递归搜索可能会遗漏，在此手动全部加入
+echo "--- Force-adding all libraries from webp package as a workaround ---"
+WEBP_LIB_DIR=$(brew --prefix webp)/lib
+if [ -d "$WEBP_LIB_DIR" ]; then
+  for lib_to_add in $WEBP_LIB_DIR/*.dylib; do
+    # 检查是否已经存在于列表中，避免重复
+    is_duplicate=0
+    for existing_lib in "${ALL_LIBS[@]}"; do
+      if [ "$(basename "$existing_lib")" == "$(basename "$lib_to_add")" ]; then
+        is_duplicate=1
+        break
+      fi
+    done
+    if [ $is_duplicate -eq 0 ]; then
+      echo "Adding potentially missing webp dependency: $lib_to_add"
+      ALL_LIBS+=("$lib_to_add")
+    fi
+  done
+fi
+
 
 echo "--- Full list of libraries to bundle ---"
 printf '%s\n' "${ALL_LIBS[@]}"
