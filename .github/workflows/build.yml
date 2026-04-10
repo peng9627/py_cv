@@ -18,7 +18,7 @@ jobs:
           - os: windows-latest
             target: windows-x64
             artifact_name: qrcode_scanner-windows-x64.zip
-            cmake_flags: "-DVCPKG_TARGET_TRIPLET=x64-windows-static"
+            cmake_flags: "-DVCPKG_TARGET_TRIPLET=x64-windows-static -DCMAKE_MSVC_RUNTIME_LIBRARY=MultiThreaded"
 
           - os: macos-latest
             target: macos-arm64
@@ -97,7 +97,6 @@ jobs:
             -A x64 `
             -DCMAKE_BUILD_TYPE=Release `
             -DCMAKE_TOOLCHAIN_FILE="$TOOLCHAIN_FILE" `
-            -DCMAKE_MSVC_RUNTIME_LIBRARY=MultiThreaded `
             "${{ matrix.cmake_flags }}"
 
       - name: Configure CMake (Unix)

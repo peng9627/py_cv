@@ -1,6 +1,6 @@
 #!/bin/bash
 # -----------------------------------------------------------------------------
-# macOS 依赖项递归打包脚本 (v7 - 符号链接修复版)
+# macOS 依赖项递归打包脚本 (v8 - 符号链接健壮版)
 # -----------------------------------------------------------------------------
 set -e
 
@@ -22,6 +22,7 @@ while [ ${#LIBS_TO_PROCESS[@]} -gt 0 ]; do
   CURRENT_LIB=${LIBS_TO_PROCESS[0]}
   LIBS_TO_PROCESS=("${LIBS_TO_PROCESS[@]:1}")
 
+  # 使用一个专门的数组来跟踪已处理的项，避免重复劳动
   if [[ " ${PROCESSED_LIBS[@]} " =~ " ${CURRENT_LIB} " ]]; then
     continue
   fi
@@ -77,6 +78,8 @@ for lib_path in "${ALL_LIBS[@]}"; do
     # 如果原始 lib_path 是一个符号链接，则在 release 目录中重新创建它
     if [ "$lib_path" != "$actual_file_path" ]; then
       symlink_name=$(basename "$lib_path")
+      # 【新】先删除目标位置可能存在的同名文件或符号链接
+      rm -f "$RELEASE_DIR/$symlink_name"
       # 确保符号链接指向我们刚刚复制的实际文件
       ln -sf "$actual_filename" "$RELEASE_DIR/$symlink_name"
       echo "Recreated symlink: $RELEASE_DIR/$symlink_name -> $actual_filename"
